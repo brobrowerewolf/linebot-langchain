@@ -63,16 +63,8 @@ async_http_client = AiohttpAsyncHttpClient(session)
 line_bot_api = AsyncLineBotApi(channel_access_token, async_http_client)
 parser = WebhookParser(channel_secret)
 
-
-# Langchain (you must use 0613 model to use OpenAI functions.)
-model = ChatOpenAI(model="gpt-3.5-turbo-0613")
-tools = [StockPriceTool(), StockPercentageChangeTool(),
-         StockGetBestPerformingTool()]
-open_ai_agent = initialize_agent(tools,
-                                 model,
-                                 agent=AgentType.OPENAI_FUNCTIONS,
-                                 verbose=False)
-
+# Langchain 串接 OpenAI ，這裡 model 可以先選 gpt-3.5-turbo
+llm = ChatOpenAI(temperature=0.9, model='gpt-3.5-turbo')
 # 透過 ConversationBufferWindowMemory 快速打造一個具有「記憶力」的聊天機器人，可以記住至少五回。
 # 通常來說 5 回還蠻夠的
 memory = ConversationBufferWindowMemory(k=15)
@@ -82,6 +74,14 @@ conversation = ConversationChain(
     verbose=False
 )
 
+# Langchain (you must use 0613 model to use OpenAI functions.)
+model = ChatOpenAI(model="gpt-3.5-turbo-0613")
+tools = [StockPriceTool(), StockPercentageChangeTool(),
+         StockGetBestPerformingTool()]
+open_ai_agent = initialize_agent(tools,
+                                 model,
+                                 agent=AgentType.OPENAI_FUNCTIONS,
+                                 verbose=False)
 
 # Fix_Zone
 @app.post("/callback")
