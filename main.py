@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 #  Licensed under the Apache License, Version 2.0 (the "License"); you may
 #  not use this file except in compliance with the License. You may obtain
 #  a copy of the License at
@@ -25,9 +24,15 @@ from langchain.agents import AgentType
 from langchain.agents import initialize_agent, Tool
 from langchain.schema import HumanMessage
 
+# Function:Memory
+from langchain.chains import ConversationChain
+from langchain.memory import ConversationBufferWindowMemory
+
+# Function:Stock
 from stock_price import StockPriceTool
 from stock_peformace import StockPercentageChangeTool, StockGetBestPerformingTool
 
+# LineBot_Fix_Model
 from linebot import (
     AsyncLineBotApi, WebhookParser
 )
@@ -58,6 +63,7 @@ async_http_client = AiohttpAsyncHttpClient(session)
 line_bot_api = AsyncLineBotApi(channel_access_token, async_http_client)
 parser = WebhookParser(channel_secret)
 
+
 # Langchain (you must use 0613 model to use OpenAI functions.)
 model = ChatOpenAI(model="gpt-3.5-turbo-0613")
 tools = [StockPriceTool(), StockPercentageChangeTool(),
@@ -67,7 +73,17 @@ open_ai_agent = initialize_agent(tools,
                                  agent=AgentType.OPENAI_FUNCTIONS,
                                  verbose=False)
 
+# 透過 ConversationBufferWindowMemory 快速打造一個具有「記憶力」的聊天機器人，可以記住至少五回。
+# 通常來說 5 回還蠻夠的
+memory = ConversationBufferWindowMemory(k=15)
+conversation = ConversationChain(
+    llm=llm,
+    memory=memory,
+    verbose=False
+)
 
+
+# Fix_Zone
 @app.post("/callback")
 async def handle_callback(request: Request):
     signature = request.headers['X-Line-Signature']
@@ -87,7 +103,8 @@ async def handle_callback(request: Request):
         if not isinstance(event.message, TextMessage):
             continue
 
-        tool_result = open_ai_agent.run(event.message.text)
+#test1        tool_result = open_ai_agent.run(event.message.text)
+        tool_result = conversation.predict(input=event.message.text)
 
         await line_bot_api.reply_message(
             event.reply_token,
